@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+require 'thor'
 
 class PgcpRunner < Thor
   desc 'cp', 'Perform copies of tables'
