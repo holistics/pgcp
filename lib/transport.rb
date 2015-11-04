@@ -1,5 +1,8 @@
 require 'active_support'
 require 'active_support/core_ext'
+require './lib/postgres'
+require './lib/qualified_name'
+require 'securerandom'
 
 class Transport
   # Initialize Transport instance
@@ -15,14 +18,41 @@ class Transport
 
   def copy_table(src_tablename, dest_tablename=nil)
     dest_tablename ||= src_tablename
+    src_table = QualifiedName.new(src_tablename)
+    dest_table = QualifiedName.new(dest_tablename)
 
+    src_conn = Postgres.new(@src_dbconfig)
+    dest_conn = Postgres.new(@dest_dbconfig)
+
+    if dest_conn.table_exist?(src_table.schema_name, src_table.table_name)
+      temp_table = QualifiedName.new("#{dest_table.schema_name}.temp_#{SecureRandom.hex}")
+      create_table_statement =
+        src_conn.get_create_table_statement(src_table.schema_name,
+                                            src_table.table_name,
+                                            temp_table.schema_name,
+                                            temp_table.table_name)
+      dest_conn.exec(create_table_statement)
+      direct_copy(src_table.full_name, temp_table.full_name)
+      dest_conn.hotswap_table(dest_table.schema_name, temp_table.table_name, dest_table.table_name)
+    else
+      create_table_statement =
+        src_conn.get_create_table_statement(src_table.schema_name,
+                                            src_table.table_name,
+                                            dest_table.schema_name,
+                                            dest_table.table_name)
+      dest_conn.exec(create_table_statement)
+      direct_copy(src_table.full_name, dest_table.full_name)
+    end
+  end
+
+  private
+
+  def direct_copy(src_tablename, dest_tablename)
     sql_in = sql_copy_from_stdin(dest_tablename)
     sql_out = sql_copy_to_stdout(src_tablename)
     command = transfer_command(@src_dbconfig, @dest_dbconfig, sql_in, sql_out)
     `#{command}`
   end
-
-  private
 
   def sql_copy_from_stdin(q_tablename)
     <<-SQL.strip_heredoc

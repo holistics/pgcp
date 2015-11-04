@@ -10,4 +10,8 @@ class QualifiedName
       @table_name = table_name
     end
   end
+
+  def full_name
+    "#{@schema_name}.#{@table_name}"
+  end
 end

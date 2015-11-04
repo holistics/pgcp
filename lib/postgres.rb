@@ -19,7 +19,7 @@ class Postgres
 
   def drop_table(schema_name, table_name)
     with_connection do |conn|
-      if table_exists?(conn, schema_name, table_name)
+      if _table_exists?(conn, schema_name, table_name)
         fq_table_name = conn.escape_string("#{schema_name}.#{table_name}")
 
         sql = <<-SQL.strip_heredoc
@@ -45,7 +45,7 @@ class Postgres
 
         true
       else
-        unless table_exists?(conn, schema_name, table_name)
+        unless _table_exists?(conn, schema_name, table_name)
           create_sql = create_table_statement(conn, columns,
                                               "#{schema_name}.#{table_name}",
                                               options)
@@ -77,9 +77,9 @@ class Postgres
       conn.transaction do
         schema_name = conn.escape_string(schema_name)
         dst_table_name = conn.escape_string(dst_table_name)
-        conn.exec "DROP TABLE #{schema_name}.#{dst_table_name}" if table_exists?(conn, schema_name, dst_table_name)
+        conn.exec "DROP TABLE #{schema_name}.#{dst_table_name}" if _table_exists?(conn, schema_name, dst_table_name)
         conn.exec "ALTER TABLE #{schema_name}.#{src_table_name} RENAME TO #{dst_table_name}"
-        #conn.exec "TRUNCATE TABLE #{schema_name}.#{dst_table_name}" if table_exists?(conn, schema_name, dst_table_name)
+        #conn.exec "TRUNCATE TABLE #{schema_name}.#{dst_table_name}" if _table_exists?(conn, schema_name, dst_table_name)
         #conn.exec "INSERT INTO #{schema_name}.#{dst_table_name}\n(SELECT * FROM #{schema_name}.#{src_table_name})"
         #conn.exec "DROP TABLE #{schema_name}.#{src_table_name}"
       end
@@ -149,10 +149,13 @@ class Postgres
     end
   end
 
-  def get_create_table_statement(schema_name, table_name)
-    columns = column_definitions(schema_name, table_name)
+  def get_create_table_statement(src_schema_name, src_table_name, dest_schema_name=nil, dest_table_name=nil)
+    dest_schema_name ||= src_schema_name
+    dest_table_name ||= dest_schema_name
 
-    statement = "CREATE TABLE #{schema_name}.#{table_name} (\n"
+    columns = column_definitions(src_schema_name, src_table_name)
+
+    statement = "CREATE TABLE #{dest_schema_name}.#{dest_table_name} (\n"
     columns.each_with_index do |col, index|
       statement << "  #{col[:name]}  #{col[:type]}  #{col[:null]}"
       statement << ',' if index != columns.size - 1
@@ -161,6 +164,12 @@ class Postgres
     statement << ");\n"
 
     statement
+  end
+
+  def table_exist?(schema_name, table_name)
+    with_connection do |conn|
+      _table_exists?(conn, schema_name, table_name)
+    end
   end
 
   private
@@ -204,7 +213,7 @@ class Postgres
     statement
   end
 
-  def table_exists?(connection, schema_name, table_name)
+  def _table_exists?(connection, schema_name, table_name)
     sql = <<-SQL.strip_heredoc
         SELECT
           count(table_name)
