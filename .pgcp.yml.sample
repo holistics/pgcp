@@ -1,0 +1,11 @@
+databases:
+  db1:
+    user: postgres
+    password:
+    dbname: reporting_test
+    host: localhost
+  db2:
+    user: postgres
+    dbname: reporting_test
+    password:
+    host: localhost
