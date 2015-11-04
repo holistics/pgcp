@@ -1,3 +1,5 @@
+require 'active_support'
+require 'active_support/core_ext'
 require 'pg'
 
 class Postgres
@@ -8,9 +10,9 @@ class Postgres
     @dbconfig = dbconfig
   end
 
-  def exec(sql)
+  def exec(sql, val=[])
     with_connection do |conn|
-      conn.exec sql
+      conn.exec sql, val
 
     end
   end
@@ -114,6 +116,53 @@ class Postgres
     end
   end
 
+  def column_definitions(schema_name, table_name)
+    with_connection do |conn|
+      sql = <<-SQL.strip_heredoc
+        SELECT 
+          c.relname, a.attname AS column_name,
+          pg_catalog.format_type(a.atttypid, a.atttypmod) as type,
+          case 
+            when a.attnotnull
+          then 'NOT NULL' 
+          else 'NULL' 
+          END as not_null 
+        FROM pg_class c,
+         pg_attribute a,
+         pg_type t,
+         pg_namespace n
+         WHERE c.relname = '#{table_name}'
+         AND n.nspname = '#{schema_name}'
+         AND a.attnum > 0
+         AND a.attrelid = c.oid
+         AND a.atttypid = t.oid
+         AND c.relnamespace = n.oid
+       ORDER BY a.attnum
+      SQL
+
+      puts sql
+      rs = conn.exec sql
+
+      rs.values.map do |col|
+        {name: col[1], type: col[2], null: col[3]}
+      end
+    end
+  end
+
+  def get_create_table_statement(schema_name, table_name)
+    columns = column_definitions(schema_name, table_name)
+
+    statement = "CREATE TABLE #{schema_name}.#{table_name} (\n"
+    columns.each_with_index do |col, index|
+      statement << "  #{col[:name]}  #{col[:type]}  #{col[:null]}"
+      statement << ',' if index != columns.size - 1
+      statement << "\n"
+    end
+    statement << ");\n"
+
+    statement
+  end
+
   private
 
   def with_connection(&block)
@@ -121,7 +170,7 @@ class Postgres
 
     block.call(conn)
   ensure
-    conn.close if conn.present?
+    conn.close if not conn.nil?
   end
 
   def get_connection
