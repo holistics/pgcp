@@ -1,3 +1,6 @@
+require 'active_support'
+require 'active_support/core_ext'
+
 class Transport
   # Initialize Transport instance
   #
@@ -5,7 +8,9 @@ class Transport
   # @param [Hash] dest_dbconfig Destination database config
   def initialize(src_dbconfig, dest_dbconfig, options={})
     @src_dbconfig = src_dbconfig
+    @src_dbconfig[:port] ||= 5432
     @dest_dbconfig = dest_dbconfig
+    @dest_dbconfig[:port] ||= 5432
   end
 
   def copy_table(src_tablename, dest_tablename=nil)
@@ -33,13 +38,13 @@ class Transport
 
   def transfer_command(src_dbconfig, dest_dbconfig, sql_in, sql_out)
     copy_to_command = %Q{
-      env PGPASSWORD="#{source_dbconfig[:password]}"
+      env PGPASSWORD="#{src_dbconfig[:password]}"
       psql
-        -U #{source_dbconfig[:user]}
-        -h #{source_dbconfig[:host]}
-        -p #{source_dbconfig[:port]}
+        -U #{src_dbconfig[:user]}
+        -h #{src_dbconfig[:host]}
+        -p #{src_dbconfig[:port]}
         -c "#{sql_out}"
-        #{source_dbconfig[:dbname]}
+        #{src_dbconfig[:dbname]}
     }.gsub(/\n/, ' ')
     copy_from_command = %Q{
       env PGPASSWORD="#{dest_dbconfig[:password]}"
