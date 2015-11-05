@@ -140,11 +140,104 @@ class Postgres
        ORDER BY a.attnum
       SQL
 
-      puts sql
       rs = conn.exec sql
 
       rs.values.map do |col|
         {name: col[1], type: col[2], null: col[3]}
+      end
+    end
+  end
+
+  def index_names(schema_name, table_name)
+    with_connection do |conn|
+      sql = <<-SQL.strip_heredoc
+        SELECT
+            C.relname AS "index_name"
+        FROM pg_catalog.pg_class C,
+             pg_catalog.pg_namespace N,
+             pg_catalog.pg_index I,
+             pg_catalog.pg_class C2
+        WHERE C.relkind IN ( 'i', '' )
+          AND N.oid = C.relnamespace
+          AND N.nspname = '#{schema_name}'
+          AND I.indexrelid = C.oid
+          AND C2.oid = I.indrelid
+          AND C2.relname = '#{table_name}';
+      SQL
+
+      rs = conn.exec sql
+
+      rs.values.map(&:first)
+    end
+  end
+
+  def get_indexes(schema_name, table_name)
+    idx_names = self.index_names(schema_name, table_name)
+
+    with_connection do |conn|
+      idx_names.map do |name|
+        index_info = index_info(conn, name, schema_name)
+        index_info['name'] = name
+        index_info['columns'] = index_column_names conn, index_info['oid']
+
+        index_info
+      end
+    end
+  end
+
+  def index_info(conn, index_name, schema_name)
+    sql = <<-SQL.strip_heredoc
+    SELECT
+        C.oid,
+        I.indisunique AS "unique",
+        I.indisprimary AS "primary",
+        pg_get_expr(I.indpred, I.indrelid) AS "where"
+    FROM pg_catalog.pg_class C,
+         pg_catalog.pg_namespace N,
+         pg_catalog.pg_index I
+    WHERE C.relname = '#{index_name}'
+      AND C.relnamespace = N.oid
+      AND I.indexrelid = C.oid
+      AND N.nspname = '#{schema_name}';
+    SQL
+
+    rs = conn.exec sql
+    rs[0].tap do |info|
+      info['unique'] = info['unique'] != 'f'
+      info['primary'] = info['primary'] != 'f'
+      info['where'] = info['where'][1..-2] if info['where'].present?
+    end
+  end
+
+  def index_column_names conn, oid
+    sql = <<-SQL.strip_heredoc
+    SELECT
+         pg_catalog.pg_get_indexdef(A.attrelid, A.attnum, TRUE) AS "column_name"
+    FROM pg_catalog.pg_attribute A
+    WHERE A.attrelid = $1
+      AND A.attnum > 0
+      AND NOT A.attisdropped
+    ORDER BY A.attnum;
+    SQL
+    conn.exec(sql, [oid]).map { |row| row['column_name'] }
+  end
+
+  def create_indexes(schema_name, table_name, indexes)
+    with_connection do |conn|
+      indexes.each do |index|
+        if index['primary']
+          sql = <<-SQL.strip_heredoc
+            ALTER TABLE #{schema_name}.#{table_name} ADD PRIMARY KEY (#{index['columns'][0]})
+          SQL
+        else
+          sql = <<-SQL.strip_heredoc
+          CREATE #{index['unique'] ? 'UNIQUE': ''} INDEX #{index['name']}
+          ON #{schema_name}.#{table_name} (#{index['columns'].join(', ')})
+          #{index['where'] ? 'WHERE ' + index['where'] : ''}
+          SQL
+        end
+
+        conn.exec(sql)
       end
     end
   end

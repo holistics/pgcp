@@ -24,6 +24,7 @@ class Transport
     src_conn = Postgres.new(@src_dbconfig)
     dest_conn = Postgres.new(@dest_dbconfig)
 
+    src_indexes = src_conn.get_indexes(src_table.schema_name, src_table.table_name)
     if dest_conn.table_exist?(src_table.schema_name, src_table.table_name)
       temp_table = QualifiedName.new("#{dest_table.schema_name}.temp_#{SecureRandom.hex}")
       create_table_statement =
@@ -43,6 +44,8 @@ class Transport
       dest_conn.exec(create_table_statement)
       direct_copy(src_table.full_name, dest_table.full_name)
     end
+
+    dest_conn.create_indexes(dest_table.schema_name, dest_table.table_name, src_indexes)
   end
 
   private
