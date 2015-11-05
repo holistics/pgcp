@@ -1,0 +1,48 @@
+#!/usr/bin/env ruby
+require 'yaml'
+require 'thor'
+require 'active_support'
+require 'active_support/core_ext'
+require './lib/transport'
+
+class PgcpRunner < Thor
+  desc 'cp', 'Perform copies of tables between Postgres databases'
+  method_option :source, type: :string, aliases: '-s', desc: 'Source database', required: true
+  method_option :dest, type: :string, aliases: '-d', desc: 'Destination database', required: true
+  method_option :table, type: :string, aliases: '-t', desc: 'Table to be copied', required: true
+  method_option :config, type: :string, aliases: '-c', desc: 'Path to config file'
+  def cp
+    config = load_config_file(options['config'] || File.join(ENV['HOME'], '.pgcp.yml'))
+
+    src = config['databases'][options['source']].symbolize_keys!
+    dest = config['databases'][options['dest']].symbolize_keys!
+
+    tr = Transport.new(src, dest)
+    tr.copy_table(options['table'])
+  end
+
+  default_task :cp
+
+  private
+  def load_config_file(path)
+    config = {}
+    if not path.nil? and File.exists?(path)
+      config = YAML::load_file(path)
+    end
+
+    config
+  end
+
+  def options
+    original_options = super
+    filename = original_options[:file] || '~/.pgcp.yml'
+    return original_options unless File.exists?(filename)
+    defaults = ::YAML::load_file(filename) || {}
+    defaults.merge(original_options)
+    # alternatively, set original_options[:langs] and then return it
+    print defaults
+    defaults
+  end
+end
+
+PgcpRunner.start

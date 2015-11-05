@@ -6,6 +6,7 @@ Gem::Specification.new do |s|
   s.description = "A simple command line tool to copy tables from one Postgres database to another"
   s.authors     = ["Thanh Dinh Khac", "Huy Nguyen"]
   s.email       = 'thanh@holistics.io'
+  s.executables << 'pgcp'
   s.files       = ["lib/postgres.rb", "lib/transport.rb"]
   s.homepage    =
     'http://rubygems.org/gems/pgcp'
