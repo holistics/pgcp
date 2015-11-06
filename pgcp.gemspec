@@ -11,4 +11,7 @@ Gem::Specification.new do |s|
   s.homepage    =
     'http://rubygems.org/gems/pgcp'
   s.license       = 'GPL'
+  s.add_runtime_dependency "activesupport", "~> 4.2"
+  s.add_runtime_dependency "thor", "~> 0.19"
+  s.add_runtime_dependency "pg", "~> 0.18"
 end
