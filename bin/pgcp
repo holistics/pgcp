@@ -4,6 +4,7 @@ require 'thor'
 require 'active_support'
 require 'active_support/core_ext'
 require './lib/transport'
+require './lib/pgcp'
 
 class PgcpRunner < Thor
   desc 'cp', 'Perform copies of tables between Postgres databases'
@@ -11,8 +12,12 @@ class PgcpRunner < Thor
   method_option :dest, type: :string, aliases: '-d', desc: 'Destination database', required: true
   method_option :table, type: :string, aliases: '-t', desc: 'Table to be copied', required: true
   method_option :config, type: :string, aliases: '-c', desc: 'Path to config file'
+  method_option :log, type: :string, aliases: '-l', desc: 'Path to log file'
   def cp
     config = load_config_file(options['config'] || File.join(ENV['HOME'], '.pgcp.yml'))
+    if options['log']
+      Pgcp.log_file = options['log']
+    end
 
     src = config['databases'][options['source']].symbolize_keys!
     dest = config['databases'][options['dest']].symbolize_keys!
@@ -31,17 +36,6 @@ class PgcpRunner < Thor
     end
 
     config
-  end
-
-  def options
-    original_options = super
-    filename = original_options[:file] || '~/.pgcp.yml'
-    return original_options unless File.exists?(filename)
-    defaults = ::YAML::load_file(filename) || {}
-    defaults.merge(original_options)
-    # alternatively, set original_options[:langs] and then return it
-    print defaults
-    defaults
   end
 end
 

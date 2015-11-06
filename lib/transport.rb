@@ -2,6 +2,7 @@ require 'active_support'
 require 'active_support/core_ext'
 require './lib/postgres'
 require './lib/qualified_name'
+require './lib/pgcp'
 require 'securerandom'
 
 class Transport
@@ -18,6 +19,8 @@ class Transport
 
   def copy_table(src_tablename, dest_tablename=nil)
     dest_tablename ||= src_tablename
+
+    Pgcp.logger.info "Start to copy from table #{src_tablename} to table #{dest_tablename}"
     src_table = QualifiedName.new(src_tablename)
     dest_table = QualifiedName.new(dest_tablename)
 
@@ -26,6 +29,7 @@ class Transport
 
     src_indexes = src_conn.get_indexes(src_table.schema_name, src_table.table_name)
     if dest_conn.table_exist?(src_table.schema_name, src_table.table_name)
+      Pgcp.logger.info "Destination table already exists, creating temporary table"
       temp_table = QualifiedName.new("#{dest_table.schema_name}.temp_#{SecureRandom.hex}")
       create_table_statement =
         src_conn.get_create_table_statement(src_table.schema_name,
@@ -33,19 +37,27 @@ class Transport
                                             temp_table.schema_name,
                                             temp_table.table_name)
       dest_conn.exec(create_table_statement)
+      Pgcp.logger.info "Copying table data to temporary table. This could take a while..."
       direct_copy(src_table.full_name, temp_table.full_name)
+      Pgcp.logger.info "Hotswapping to destination table #{dest_tablename}"
       dest_conn.hotswap_table(dest_table.schema_name, temp_table.table_name, dest_table.table_name)
+      Pgcp.logger.info "Done copying table data."
     else
+      Pgcp.logger.info "Destination table does not exist, creating destination table."
       create_table_statement =
         src_conn.get_create_table_statement(src_table.schema_name,
                                             src_table.table_name,
                                             dest_table.schema_name,
                                             dest_table.table_name)
       dest_conn.exec(create_table_statement)
+      Pgcp.logger.info "Copying table data to destination table. This could take a while..."
       direct_copy(src_table.full_name, dest_table.full_name)
+      Pgcp.logger.info "Copying table data to destination table done."
     end
 
+    Pgcp.logger.info "Copying table indexes to destination table..."
     dest_conn.create_indexes(dest_table.schema_name, dest_table.table_name, src_indexes)
+    Pgcp.logger.info "Done copying table indexes."
   end
 
   private
