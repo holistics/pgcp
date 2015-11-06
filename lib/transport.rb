@@ -17,8 +17,12 @@ class Transport
     @dest_dbconfig[:port] ||= 5432
   end
 
-  def copy_table(src_tablename, dest_tablename=nil)
+  def copy_table(src_tablename, dest_tablename=nil, options=nil)
     dest_tablename ||= src_tablename
+    options ||= {
+      create_schema: true,
+      skip_indexes: false
+    }
 
     Pgcp.logger.info "Start to copy from table #{src_tablename} to table #{dest_tablename}"
     src_table = QualifiedName.new(src_tablename)
@@ -26,6 +30,7 @@ class Transport
 
     src_conn = Postgres.new(@src_dbconfig)
     dest_conn = Postgres.new(@dest_dbconfig)
+    dest_conn.exec "CREATE SCHEMA IF NOT EXISTS #{dest_table.schema_name};" if options[:create_schema]
 
     src_indexes = src_conn.get_indexes(src_table.schema_name, src_table.table_name)
     if dest_conn.table_exist?(src_table.schema_name, src_table.table_name)
@@ -55,9 +60,11 @@ class Transport
       Pgcp.logger.info "Copying table data to destination table done."
     end
 
-    Pgcp.logger.info "Copying table indexes to destination table..."
-    dest_conn.create_indexes(dest_table.schema_name, dest_table.table_name, src_indexes)
-    Pgcp.logger.info "Done copying table indexes."
+    unless options[:skip_indexes]
+      Pgcp.logger.info "Copying table indexes to destination table..."
+      dest_conn.create_indexes(dest_table.schema_name, dest_table.table_name, src_indexes)
+      Pgcp.logger.info "Done copying table indexes."
+    end
   end
 
   private
