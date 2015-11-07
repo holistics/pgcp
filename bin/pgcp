@@ -22,16 +22,21 @@ class PgcpRunner < Thor
     src = config['databases'][options['source']].symbolize_keys!
     dest = config['databases'][options['dest']].symbolize_keys!
 
-    tr = Transport.new(src, dest)
-    if options['table'].include? '*'
-      if (not options['table'].include? '.') or (options['table'].count('.') > 1)
-        Pgcp.logger.error 'Globbed tables must have schema name, e.g. public.test* is valid but test* is not.'
-        return
-      end
+    begin
+      tr = Transport.new(src, dest)
+      if options['table'].include? '*'
+        if (not options['table'].include? '.') or (options['table'].count('.') > 1)
+          Pgcp.logger.error 'Globbed tables must have schema name, e.g. public.test* is valid but test* is not.'
+          return
+        end
 
-      tr.copy_tables(options['table'])
-    else
-      tr.copy_table(options['table'])
+        tr.copy_tables(options['table'])
+      else
+        tr.copy_table(options['table'])
+      end
+    rescue Exception => e
+      Pgcp.logger.error(e.message)
+      return
     end
   end
 

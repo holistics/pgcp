@@ -87,6 +87,10 @@ class Transport
     sql_out = sql_copy_to_stdout(src_tablename)
     command = transfer_command(@src_dbconfig, @dest_dbconfig, sql_in, sql_out)
     `#{command}`
+    exit_code = `echo $?`
+    if exit_code != 0
+      raise 'Failed to directly copy data'
+    end
   end
 
   def sql_copy_from_stdin(q_tablename)
