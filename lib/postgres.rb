@@ -17,6 +17,24 @@ class Postgres
     end
   end
 
+  def list_tables(schema_name)
+    with_connection do |conn|
+      sql = <<-SQL.strip_heredoc
+        SELECT table_name
+        FROM information_schema.tables
+        WHERE table_type = 'BASE TABLE'
+          AND table_schema NOT IN ('pg_catalog', 'information_schema')
+          AND table_schema = '#{schema_name}'
+        ORDER BY 1
+      SQL
+
+      rs = conn.exec sql
+
+      rs.values.map(&:first)
+    end
+
+  end
+
   def drop_table(schema_name, table_name)
     with_connection do |conn|
       if _table_exists?(conn, schema_name, table_name)

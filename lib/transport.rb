@@ -17,6 +17,19 @@ class Transport
     @dest_dbconfig[:port] ||= 5432
   end
 
+  def copy_tables(src_tablenames)
+    schema_name = src_tablenames.split('.')[0]
+    table_glob = src_tablenames.split('.')[1]
+
+    dest_conn = Postgres.new(@dest_dbconfig)
+    tables = dest_conn.list_tables(schema_name)
+    tables.each do |table|
+      if File.fnmatch(table_glob, table)
+        copy_table("#{schema_name}.#{table}")
+      end
+    end
+  end
+
   def copy_table(src_tablename, dest_tablename=nil, options=nil)
     dest_tablename ||= src_tablename
     options ||= {
