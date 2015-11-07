@@ -12,6 +12,7 @@ class PgcpRunner < Thor
   method_option :dest, type: :string, aliases: '-d', desc: 'Destination database', required: true
   method_option :table, type: :string, aliases: '-t', desc: 'Table to be copied', required: true
   method_option :config, type: :string, aliases: '-c', desc: 'Path to config file'
+  method_option :force_schema, type: :string, aliases: '-f', desc: 'Force destination schema'
   method_option :log, type: :string, aliases: '-l', desc: 'Path to log file'
   def cp
     config = load_config_file(options['config'] || File.join(ENV['HOME'], '.pgcp.yml'))
@@ -30,9 +31,9 @@ class PgcpRunner < Thor
           return
         end
 
-        tr.copy_tables(options['table'])
+        tr.copy_tables(options['table'], force_schema: options['force_schema'])
       else
-        tr.copy_table(options['table'])
+        tr.copy_table(options['table'], nil, force_schema: options['force_schema'])
       end
     rescue Exception => e
       Pgcp.logger.error(e.message)
