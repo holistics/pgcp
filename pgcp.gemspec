@@ -2,7 +2,7 @@ $LOAD_PATH << File.expand_path('../lib', __FILE__)
 
 Gem::Specification.new do |s|
   s.name = 'pgcp'
-  s.version = '0.0.0'
+  s.version = '0.0.1'
   s.date = '2015-11-05'
   s.summary = 'A simple command line tool to copy tables from one Postgres database to another'
   s.description = 'A simple command line tool to copy tables from one Postgres database to another'
