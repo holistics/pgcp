@@ -7,7 +7,7 @@ Gem::Specification.new do |s|
   s.authors     = ["Thanh Dinh Khac", "Huy Nguyen"]
   s.email       = 'thanh@holistics.io'
   s.executables << 'pgcp'
-  s.files       = ["lib/postgres.rb", "lib/transport.rb"]
+  s.files       = %w(lib/pgcp.rb lib/postgres.rb lib/transport.rb)
   s.homepage    =
     'http://rubygems.org/gems/pgcp'
   s.license       = 'GPL'

@@ -8,6 +8,7 @@ class PgcpRunner < Thor
   method_option :config, type: :string, aliases: '-c', desc: 'Path to config file'
   method_option :force_schema, type: :string, aliases: '-f', desc: 'Force destination schema'
   method_option :log, type: :string, aliases: '-l', desc: 'Path to log file'
+
   def cp
     config = load_config_file(options['config'] || File.join(ENV['HOME'], '.pgcp.yml'))
     if options['log']
