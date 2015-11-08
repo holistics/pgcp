@@ -1,8 +1,7 @@
 require 'active_support'
 require 'active_support/core_ext'
-require './lib/postgres'
-require './lib/qualified_name'
-require './lib/pgcp'
+require 'pgcp/postgres'
+require 'pgcp/qualified_name'
 require 'securerandom'
 
 class Transport

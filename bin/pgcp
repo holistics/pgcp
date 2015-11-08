@@ -1,9 +1,4 @@
 #!/usr/bin/env ruby
-require 'yaml'
-require 'thor'
-require 'active_support'
-require 'active_support/core_ext'
-require './lib/transport'
-require './lib/pgcp'
-
+require 'pgcp'
 PgcpRunner.start
+

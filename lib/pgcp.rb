@@ -1,4 +1,9 @@
 require 'logger'
+require 'yaml'
+require 'thor'
+require 'active_support'
+require 'active_support/core_ext'
+require 'pgcp/transport'
 
 class PgcpRunner < Thor
   desc 'cp', 'Perform copies of tables between Postgres databases'
