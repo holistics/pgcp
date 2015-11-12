@@ -1,4 +1,4 @@
-require 'transport'
+require 'pgcp/transport'
 
 RSpec.describe Postgres do
   it "should be able to get index names from a table" do

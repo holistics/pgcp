@@ -1,4 +1,4 @@
-require 'qualified_name'
+require 'pgcp/qualified_name'
 
 RSpec.describe QualifiedName do
   it "should be able to be created with both arguments" do

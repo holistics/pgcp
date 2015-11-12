@@ -1,4 +1,4 @@
-require 'transport'
+require 'pgcp/transport'
 
 RSpec.describe Transport do
   context "Directly copy table from one database to another" do
@@ -21,12 +21,12 @@ RSpec.describe Transport do
 
     it "should not create schema if specified" do
       tr = Transport.new(src, dest)
-      tr.copy_table('public.users', create_schema: false)
+      tr.copy_table('public.users', nil, create_schema: false)
     end
 
     it "should skip copy indexes if specified" do
       tr = Transport.new(src, dest)
-      tr.copy_table('public.users', skip_indexes: true)
+      tr.copy_table('public.users', nil, skip_indexes: true)
     end
   end
 end

@@ -14,4 +14,8 @@ class QualifiedName
   def full_name
     "#{@schema_name}.#{@table_name}"
   end
+
+  def to_s
+    full_name
+  end
 end
