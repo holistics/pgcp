@@ -1,4 +1,4 @@
 #!/usr/bin/env ruby
-require 'pgcp'
+require 'pgcp_runner'
 PgcpRunner.start
 
