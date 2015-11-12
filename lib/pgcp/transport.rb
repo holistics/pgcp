@@ -144,7 +144,6 @@ class Transport
 
   def hotswap_table(conn, schema_name, src_table, dest_table)
     Pgcp.logger.info "Hotswapping to destination table #{schema_name}.#{dest_table}"
-    raise 'error'
     conn.hotswap_table(schema_name, src_table, dest_table)
   end
 end
