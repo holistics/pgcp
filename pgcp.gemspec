@@ -16,7 +16,7 @@ Gem::Specification.new do |s|
   s.require_paths = ['lib']
   s.executables << 'pgcp'
 
-  s.add_runtime_dependency "activesupport", "~> 4.2"
+  s.add_runtime_dependency "activesupport", ">= 4.2", "< 8.0"
   s.add_runtime_dependency "thor", "~> 0.19"
   s.add_runtime_dependency "pg", "~> 0.18"
 
